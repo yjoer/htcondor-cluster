@@ -1,0 +1,36 @@
+submission_host:
+  hosts:
+    server_1:
+      ansible_host: 18.204.32.221
+      ansible_user: ubuntu
+      ansible_ssh_private_key_file: keys/gp.pem
+
+central_manager:
+  hosts:
+    server_2:
+      ansible_host: 18.211.126.128
+      ansible_user: ubuntu
+      ansible_ssh_private_key_file: keys/gp.pem
+
+execution_host:
+  hosts:
+    server_3:
+      ansible_host: 54.147.239.82
+      ansible_user: ubuntu
+      ansible_ssh_private_key_file: keys/gp.pem
+    server_4:
+      ansible_host: 54.161.255.100
+      ansible_user: ubuntu
+      ansible_ssh_private_key_file: keys/gp.pem
+    server_5:
+      ansible_host: 54.86.113.15
+      ansible_user: ubuntu
+      ansible_ssh_private_key_file: keys/gp.pem
+    server_6:
+      ansible_host: 44.211.45.175
+      ansible_user: ubuntu
+      ansible_ssh_private_key_file: keys/gp.pem
+
+all:
+  vars:
+    nfs_server_ip: 172.31.28.6

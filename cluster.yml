@@ -1,0 +1,144 @@
+- hosts: all
+  become: yes
+  tasks:
+    - name: Add HTCondor's GPG key.
+      get_url:
+        url: https://research.cs.wisc.edu/htcondor/repo/keys/HTCondor-23.x-Key
+        dest: /etc/apt/trusted.gpg.d/htcondor.asc
+        force: true
+
+    - name: Set up the HTCondor repository.
+      apt_repository:
+        repo: deb [arch=amd64] http://research.cs.wisc.edu/htcondor/repo/ubuntu/23.x jammy main
+        state: present
+
+    - name: Install HTCondor.
+      apt:
+        name: htcondor
+        update_cache: yes
+        state: present
+
+    - name: Remove the default 9.0 security configuration.
+      file:
+        path: /etc/condor/config.d/00-htcondor-9.0.config
+        state: absent
+
+    - name: Create a credential.
+      shell: condor_store_cred add -c -p 123
+
+    - name: Create a token.
+      shell: condor_token_create -identity condor@172.31.18.184 > /etc/condor/tokens.d/condor@172.31.18.184
+
+    - name: Install NFS client.
+      apt:
+        name: nfs-common
+        update_cache: yes
+        state: present
+
+# Submission host (incl. NFS server)
+- hosts: submission_host
+  become: yes
+  tasks:
+    - name: Configure the submission host.
+      copy:
+        src: ./config/01-submit.config
+        dest: /etc/condor/config.d/01-submit.config
+        owner: ubuntu
+        group: ubuntu
+        mode: 0755
+
+    - name: Restart HTCondor to load the new configuration.
+      service:
+        name: condor
+        state: restarted
+
+    - name: Install NFS server.
+      apt:
+        name: nfs-kernel-server
+        update_cache: yes
+        state: present
+
+    - name: Configure the NFS server.
+      copy:
+        src: ./config/exports
+        dest: /etc/exports
+        owner: ubuntu
+        group: ubuntu
+        mode: 0755
+
+    - name: Create a directory if it does not exist.
+      file:
+        path: /home/ubuntu/shared_data
+        owner: ubuntu
+        group: ubuntu
+        state: directory
+        mode: 0755
+
+    - name: Apply the new config.
+      shell: exportfs -a
+
+# Central manager (incl. NFS client)
+- hosts: central_manager
+  become: yes
+  tasks:
+    - name: Configure the central manager.
+      copy:
+        src: ./config/01-central-manager.config
+        dest: /etc/condor/config.d/01-central-manager.config
+        owner: ubuntu
+        group: ubuntu
+        mode: 0755
+
+    - name: Restart HTCondor to load the new configuration.
+      service:
+        name: condor
+        state: restarted
+
+    - name: Create a directory if it does not exist.
+      file:
+        path: /home/ubuntu/shared_data
+        owner: ubuntu
+        group: ubuntu
+        state: directory
+        mode: 0755
+
+    - name: Mount an NFS volume.
+      mount:
+        src: "{{ nfs_server_ip }}:/home/ubuntu/shared_data"
+        path: /home/ubuntu/shared_data
+        opts: rw,sync,hard
+        state: mounted
+        fstype: nfs
+
+# Execution hosts (incl. NFS client)
+- hosts: execution_host
+  become: yes
+  tasks:
+    - name: Configure the execution host.
+      copy:
+        src: ./config/01-execute.config
+        dest: /etc/condor/config.d/01-execute.config
+        owner: ubuntu
+        group: ubuntu
+        mode: 0755
+
+    - name: Restart HTCondor to load the new configuration.
+      service:
+        name: condor
+        state: restarted
+
+    - name: Create a directory if it does not exist.
+      file:
+        path: /home/ubuntu/shared_data
+        owner: ubuntu
+        group: ubuntu
+        state: directory
+        mode: 0755
+
+    - name: Mount an NFS volume.
+      mount:
+        src: "{{ nfs_server_ip }}:/home/ubuntu/shared_data"
+        path: /home/ubuntu/shared_data
+        opts: rw,sync,hard
+        state: mounted
+        fstype: nfs
