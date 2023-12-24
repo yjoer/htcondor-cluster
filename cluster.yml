@@ -35,6 +35,30 @@
         update_cache: yes
         state: present
 
+    - name: Download Montage binaries.
+      get_url:
+        url: https://github.com/yjoer/montage/releases/download/v6.0/montage_6.0_linux_amd64.tar.gz
+        dest: /home/ubuntu/montage.tar.gz
+
+    - name: Create a directory if it does not exist.
+      file:
+        path: /home/ubuntu/montage
+        owner: ubuntu
+        group: ubuntu
+        state: directory
+        mode: 0755
+
+    - name: Extract Montage binaries.
+      unarchive:
+        src: /home/ubuntu/montage.tar.gz
+        dest: /home/ubuntu/montage
+        remote_src: yes
+
+    - name: Add Montage binaries to $PATH.
+      lineinfile:
+        path: /home/ubuntu/.profile
+        line: "PATH=$PATH:/home/ubuntu/montage"
+
 # Submission host (incl. NFS server)
 - hosts: submission_host
   become: yes
