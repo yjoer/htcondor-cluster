@@ -23,6 +23,14 @@
         path: /etc/condor/config.d/00-htcondor-9.0.config
         state: absent
 
+    - name: Enable a shared file system.
+      copy:
+        src: ./config/02-domain.config
+        dest: /etc/condor/config.d/02-domain.config
+        owner: ubuntu
+        group: ubuntu
+        mode: 0755
+
     - name: Create a credential.
       shell: condor_store_cred add -c -p 123
 
